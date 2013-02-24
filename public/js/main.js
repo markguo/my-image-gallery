@@ -15,7 +15,11 @@
 $(function () {
     'use strict';
 
-    var play = function(dir){
+    var currentPlayingDirIndex = -1;
+    var imageDirList = [];
+
+    var loadImageDir = function(dir, onload)
+    {
         $.ajax({
             url: 'http://localhost:3000/home/images.json' + '?dir=' + dir,
             data: {
@@ -26,31 +30,60 @@ $(function () {
                 var gallery = $('#gallery'),
                     url;
 
+                $('<a data-target="data-gallery"/>').children().remove();
                 $.each(data.images, function (index, image) {
                     url = "http://localhost:3000/home/get_image?image=/" + data.dir + "/" + image;
                     $('<a data-gallery="gallery"/>')
                         .prop('href',    url)
-                        .prop('title', image)
+                        .prop('title', "Dir: " + dir + " index: " + (index + 1)+ "/" + data.images.length)
                         .appendTo(gallery);
                 });
 
-
-             var options = $('#start-slideshow').data(),
-             modal = $(options.target),
-             data = modal.data('modal');
-             if (data) {
-                $.extend(data.options, options);
-             } else {
-                options = $.extend(modal.data(), options);
-             }
-             modal.find('.modal-slideshow').find('i')
-             .removeClass('icon-play')
-             .addClass('icon-pause');
-             modal.modal(options);
-        });
+                onload();
+            });
     };
 
+    var playNextImageDir = function()
+    {
+        currentPlayingDirIndex++;
+        if(currentPlayingDirIndex == imageDirList.length){
+            currentPlayingDirIndex = 0;
+        }
 
+        var dir = imageDirList[currentPlayingDirIndex];
+        //alert("play " + dir + "dir");
+        loadImageDir(dir, startPlayLoadedImage);
+    };
+
+    var startPlayLoadedImage = function()
+    {
+        var options = $('#start-slideshow').data(),
+            modal = $(options.target),
+            data = modal.data('modal');
+        if (data) {
+            $.extend(data.options, options);
+        } else {
+            options = $.extend(modal.data(), options);
+        }
+        modal.find('.modal-slideshow').find('i')
+            .removeClass('icon-play')
+            .addClass('icon-pause');
+
+        modal.on('displayed', function(){
+            var modalData = $(this).data('modal');
+            var link = modalData.$links.get(modalData.options.index);
+        //    alert(modalData.$links.length + " " + modalData.options.index);
+            if(modalData.options.index + 1== modalData.$links.length){
+                modal.hide();
+                playNextImageDir();
+                modal.show();
+            }
+        });
+        options.show = false;
+        modal.modal(options);
+        modal.modal('initLinks');
+        modal.modal('show');
+    };
 
     // Start slideshow button:
     $('#start-slideshow').button().click(function () {
@@ -62,13 +95,8 @@ $(function () {
             },
             dataType: 'json'
         }).done(function (data) {
-                var gallery = $('#gallery'),
-                    url;
-                $.each(data, function (index, images_dir) {
-                    alert(images_dir);
-                    play(images_dir);
-
-                });
+                imageDirList = data;
+                playNextImageDir();
             });
     });
 

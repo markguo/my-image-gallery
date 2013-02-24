@@ -10,7 +10,7 @@ class HomeController < ApplicationController
   end
 
   def dirs
-    top_dirs = [ 1, 2, 3]
+    top_dirs = Dir.glob("#{@images_root_dir}/*").select{|d| File.directory?(d)}.collect{|d| File.basename(d)}
     respond_to do |format|
       format.html  # dirs.html.erb
       format.json  { render :json => top_dirs }
